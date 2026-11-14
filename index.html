@@ -1,0 +1,1728 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Mini GTA — Step 8: Supercar &amp; Exploding Wrecks</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #111827;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      color: #f9fafb;
+    }
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    /* Top HUD */
+    #hud {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      pointer-events: none;
+      gap: 8px;
+    }
+    .hud-left {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .hud-right {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+    .hud-card {
+      background: rgba(17, 24, 39, 0.84);
+      backdrop-filter: blur(6px);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      padding: 8px 12px;
+      pointer-events: auto;
+    }
+    .hud-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #9ca3af;
+      margin-bottom: 2px;
+    }
+    .hud-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .hud-value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #fbbf24;
+    }
+    .hud-cash {
+      font-size: 16px;
+      font-weight: 800;
+      color: #4ade80;
+    }
+    .hud-best {
+      font-size: 12px;
+      font-weight: 700;
+      color: #93c5fd;
+    }
+    .hud-mission {
+      font-size: 12px;
+      font-weight: 600;
+      color: #a7f3d0;
+      margin-top: 4px;
+    }
+    .hud-radio {
+      font-size: 11px;
+      font-weight: 700;
+      color: #c4b5fd;
+      margin-top: 2px;
+    }
+    .bars-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 5px;
+      flex-wrap: wrap;
+    }
+    .meter-wrap {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .meter-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+    }
+    .meter-label.nitro {
+      color: #38bdf8;
+    }
+    .meter-label.hp {
+      color: #4ade80;
+    }
+    .meter-bar-bg {
+      width: 90px;
+      height: 8px;
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+    .meter-bar-fill {
+      height: 100%;
+      width: 100%;
+      transition: width 0.08s linear;
+    }
+    .meter-bar-fill.nitro {
+      background: linear-gradient(90deg, #38bdf8, #f97316);
+    }
+    .meter-bar-fill.hp {
+      background: #4ade80;
+    }
+    .hud-stars {
+      font-size: 18px;
+      letter-spacing: 3px;
+      color: #4b5563;
+      margin-top: 2px;
+    }
+    .hud-stars .lit {
+      color: #facc15;
+      text-shadow: 0 0 8px rgba(250, 204, 21, 0.7);
+    }
+    .hud-controls-hint {
+      font-size: 12px;
+      color: #d1d5db;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    .hud-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      pointer-events: auto;
+    }
+    #minimap {
+      width: 132px;
+      height: 104px;
+      border-radius: 10px;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      background: rgba(17, 24, 39, 0.88);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      pointer-events: auto;
+    }
+    .btn {
+      background: rgba(31, 41, 55, 0.9);
+      color: #f9fafb;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 7px 11px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:hover {
+      background: rgba(55, 65, 81, 0.95);
+    }
+    .btn:active {
+      transform: scale(0.96);
+    }
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .btn-accent {
+      background: #f59e0b;
+      color: #111827;
+      border-color: #fbbf24;
+    }
+    .btn-accent:hover {
+      background: #fbbf24;
+    }
+    .btn-night {
+      background: #312e81;
+      border-color: #6366f1;
+    }
+    .btn-radio {
+      background: #581c87;
+      border-color: #a855f7;
+    }
+
+    /* Overlays */
+    .modal-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.78);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 20;
+      padding: 16px;
+    }
+    .modal-overlay.visible {
+      display: flex;
+    }
+    .modal-card {
+      background: #1f2937;
+      border: 2px solid #4b5563;
+      border-radius: 14px;
+      padding: 22px 24px;
+      text-align: center;
+      width: 100%;
+      max-width: 350px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    }
+    .modal-card.busted {
+      border-color: #ef4444;
+    }
+    .busted-title {
+      font-size: 30px;
+      font-weight: 900;
+      letter-spacing: 0.12em;
+      color: #ef4444;
+      margin-bottom: 8px;
+    }
+    .modal-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fbbf24;
+      margin-bottom: 4px;
+    }
+    .modal-sub {
+      font-size: 13px;
+      color: #d1d5db;
+      margin-bottom: 14px;
+    }
+    .shop-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    .shop-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(17, 24, 39, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 10px 12px;
+      gap: 10px;
+    }
+    .shop-item-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #f9fafb;
+    }
+    .shop-item-desc {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    /* On-screen touch/mouse controls */
+    #touch-controls {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      pointer-events: none;
+    }
+    .dpad {
+      display: grid;
+      grid-template-columns: repeat(3, 48px);
+      grid-template-rows: repeat(3, 48px);
+      gap: 4px;
+      pointer-events: auto;
+    }
+    .dpad-btn {
+      background: rgba(17, 24, 39, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 10px;
+      color: #f9fafb;
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      touch-action: none;
+    }
+    .dpad-btn:active, .dpad-btn.active {
+      background: rgba(245, 158, 11, 0.85);
+      color: #111827;
+    }
+    .dpad-empty {
+      pointer-events: none;
+    }
+    .action-pad {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .action-btn {
+      min-width: 122px;
+      padding: 11px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(17, 24, 39, 0.82);
+      color: #f9fafb;
+      cursor: pointer;
+      touch-action: none;
+    }
+    .action-btn.primary {
+      background: #f59e0b;
+      color: #111827;
+      border-color: #fbbf24;
+    }
+    .action-btn.nitro {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+    .action-btn:active {
+      transform: scale(0.96);
+    }
+
+    @media (max-width: 600px) {
+      .hud-controls-hint {
+        display: none;
+      }
+      #minimap {
+        width: 102px;
+        height: 80px;
+      }
+      .dpad {
+        grid-template-columns: repeat(3, 42px);
+        grid-template-rows: repeat(3, 42px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+
+    <div id="hud">
+      <div class="hud-left">
+        <div class="hud-card">
+          <div class="hud-title">Mode, Speed &amp; Cash</div>
+          <div class="hud-row">
+            <div class="hud-value" id="hud-status">ON FOOT • 0 MPH</div>
+            <div class="hud-cash" id="hud-cash">$0</div>
+            <div class="hud-best" id="hud-best">Best: $0</div>
+          </div>
+          <div class="hud-stars" id="hud-stars" aria-label="Wanted level">★ ★ ★</div>
+          <div class="bars-row">
+            <div class="meter-wrap">
+              <span class="meter-label nitro">NITRO</span>
+              <div class="meter-bar-bg">
+                <div class="meter-bar-fill nitro" id="nitro-fill"></div>
+              </div>
+            </div>
+            <div class="meter-wrap" id="car-hp-wrap" style="display: none;">
+              <span class="meter-label hp">CAR HP</span>
+              <div class="meter-bar-bg">
+                <div class="meter-bar-fill hp" id="car-hp-fill"></div>
+              </div>
+            </div>
+          </div>
+          <div class="hud-mission" id="hud-mission">Mission: Deliver to BANK (20s)</div>
+          <div class="hud-radio" id="hud-radio">Radio: OFF (Press R in car)</div>
+          <div class="hud-controls-hint">
+            Drive: <b>WASD/Arrows</b> • Car: <b>E</b> • Nitro: <b>Shift</b> • Radio: <b>R</b> • Honk: <b>Space</b>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-right">
+        <div class="hud-actions">
+          <button class="btn" id="btn-radio" type="button">Radio (R)</button>
+          <button class="btn" id="btn-shop" type="button">Upgrades</button>
+          <button class="btn" id="btn-night" type="button">Night: OFF</button>
+          <button class="btn" id="btn-reset" type="button">Reset</button>
+          <button class="btn btn-accent" id="btn-mute" type="button">Sound: ON</button>
+        </div>
+        <canvas id="minimap" width="132" height="104" aria-label="City minimap"></canvas>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="shop-overlay" role="dialog" aria-modal="true" aria-labelledby="shop-heading">
+      <div class="modal-card">
+        <div class="modal-title" id="shop-heading">Garage Upgrades</div>
+        <p class="modal-sub" id="shop-cash-label">Available Cash: $0</p>
+        <div class="shop-list">
+          <div class="shop-item">
+            <div>
+              <div class="shop-item-name">Turbo Engine</div>
+              <div class="shop-item-desc">+20% top speed &amp; acceleration</div>
+            </div>
+            <button class="btn btn-accent" id="buy-turbo" type="button">$300</button>
+          </div>
+          <div class="shop-item">
+            <div>
+              <div class="shop-item-name">Armor Plating</div>
+              <div class="shop-item-desc">Cuts crash damage in half</div>
+            </div>
+            <button class="btn btn-accent" id="buy-armor" type="button">$300</button>
+          </div>
+          <div class="shop-item">
+            <div>
+              <div class="shop-item-name">Big Nitro Tank</div>
+              <div class="shop-item-desc">Nitro lasts 50% longer</div>
+            </div>
+            <button class="btn btn-accent" id="buy-nitro" type="button">$250</button>
+          </div>
+        </div>
+        <button class="btn" id="btn-close-shop" type="button">Back to Streets</button>
+      </div>
+    </div>
+
+    <div class="modal-overlay" id="busted-overlay" role="dialog" aria-modal="true" aria-labelledby="busted-heading">
+      <div class="modal-card busted">
+        <div class="busted-title" id="busted-heading">BUSTED!</div>
+        <p class="modal-sub" id="busted-summary">The police caught you! Ready to hit the streets again?</p>
+        <button class="btn btn-accent" id="btn-respawn" type="button">Play Again</button>
+      </div>
+    </div>
+
+    <div id="touch-controls">
+      <div class="dpad" aria-label="Directional controls">
+        <div class="dpad-empty"></div>
+        <button class="dpad-btn" data-key="ArrowUp" type="button" aria-label="Up">▲</button>
+        <div class="dpad-empty"></div>
+        <button class="dpad-btn" data-key="ArrowLeft" type="button" aria-label="Left">◀</button>
+        <div class="dpad-empty"></div>
+        <button class="dpad-btn" data-key="ArrowRight" type="button" aria-label="Right">▶</button>
+        <div class="dpad-empty"></div>
+        <button class="dpad-btn" data-key="ArrowDown" type="button" aria-label="Down">▼</button>
+        <div class="dpad-empty"></div>
+      </div>
+
+      <div class="action-pad">
+        <button class="action-btn primary" id="btn-car" type="button">Enter Car (E)</button>
+        <button class="action-btn nitro" id="btn-nitro" type="button">Nitro (Shift)</button>
+        <button class="action-btn" id="btn-honk" type="button">Honk (Space)</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const canvas = document.getElementById('game-canvas');
+      const ctx = canvas.getContext('2d');
+      const minimap = document.getElementById('minimap');
+      const mctx = minimap.getContext('2d');
+
+      const hudStatus = document.getElementById('hud-status');
+      const hudCash = document.getElementById('hud-cash');
+      const hudBest = document.getElementById('hud-best');
+      const hudStars = document.getElementById('hud-stars');
+      const hudMission = document.getElementById('hud-mission');
+      const hudRadio = document.getElementById('hud-radio');
+      const nitroFill = document.getElementById('nitro-fill');
+      const carHpWrap = document.getElementById('car-hp-wrap');
+      const carHpFill = document.getElementById('car-hp-fill');
+      const bustedOverlay = document.getElementById('busted-overlay');
+      const bustedSummary = document.getElementById('busted-summary');
+      const shopOverlay = document.getElementById('shop-overlay');
+      const shopCashLabel = document.getElementById('shop-cash-label');
+      const buyTurbo = document.getElementById('buy-turbo');
+      const buyArmor = document.getElementById('buy-armor');
+      const buyNitro = document.getElementById('buy-nitro');
+      const btnRadio = document.getElementById('btn-radio');
+      const btnShop = document.getElementById('btn-shop');
+      const btnCloseShop = document.getElementById('btn-close-shop');
+      const btnNight = document.getElementById('btn-night');
+      const btnCar = document.getElementById('btn-car');
+      const btnNitro = document.getElementById('btn-nitro');
+      const btnHonk = document.getElementById('btn-honk');
+      const btnMute = document.getElementById('btn-mute');
+      const btnReset = document.getElementById('btn-reset');
+      const btnRespawn = document.getElementById('btn-respawn');
+
+      // --- 1. AUDIO (Web Audio API) ---
+      let audioCtx = null;
+      let isMuted = false;
+
+      const radioStations = [
+        { name: 'OFF', notes: [] },
+        { name: 'SYNTHWAVE FM', notes: [220, 261.6, 329.6, 392, 329.6, 261.6], type: 'sawtooth' },
+        { name: 'HIP-HOP BEATS', notes: [110, 0, 110, 146.8, 98, 0, 130.8, 110], type: 'triangle' },
+        { name: 'ROCK RADIO', notes: [164.8, 164.8, 196, 220, 164.8, 146.8], type: 'square' }
+      ];
+
+      function ensureAudio() {
+        if (isMuted) return null;
+        if (!audioCtx) {
+          const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioContextClass) {
+            audioCtx = new AudioContextClass();
+          }
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(() => {});
+        }
+        return audioCtx;
+      }
+
+      function playTone(freq, duration, type, volume) {
+        const ac = ensureAudio();
+        if (!ac || isMuted || !freq) return;
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.type = type || 'sine';
+        osc.frequency.setValueAtTime(freq, ac.currentTime);
+        gain.gain.setValueAtTime(volume || 0.08, ac.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.start();
+        osc.stop(ac.currentTime + duration);
+      }
+
+      function playHonk() {
+        playTone(340, 0.16, 'sawtooth', 0.07);
+        setTimeout(() => playTone(420, 0.22, 'sawtooth', 0.07), 60);
+      }
+
+      function playDoorSound() {
+        playTone(180, 0.09, 'triangle', 0.09);
+      }
+
+      function playCrashSound() {
+        playTone(95, 0.14, 'square', 0.08);
+      }
+
+      function playBoomSound() {
+        playTone(65, 0.35, 'sawtooth', 0.14);
+        setTimeout(() => playTone(45, 0.4, 'square', 0.1), 50);
+      }
+
+      function playSirenBlip(high) {
+        playTone(high ? 740 : 540, 0.16, 'triangle', 0.035);
+      }
+
+      function playCashSound() {
+        playTone(587, 0.09, 'sine', 0.09);
+        setTimeout(() => playTone(880, 0.18, 'sine', 0.1), 80);
+      }
+
+      function playSpraySound() {
+        playTone(620, 0.12, 'triangle', 0.07);
+        setTimeout(() => playTone(920, 0.18, 'sine', 0.08), 90);
+      }
+
+      function playRepairSound() {
+        playTone(520, 0.1, 'triangle', 0.08);
+        setTimeout(() => playTone(780, 0.14, 'triangle', 0.08), 75);
+      }
+
+      // --- 2. HIGH SCORE STORAGE ---
+      function loadBestCash() {
+        try {
+          return parseInt(localStorage.getItem('mini_gta_best_cash') || '0', 10) || 0;
+        } catch (err) {
+          return 0;
+        }
+      }
+
+      function saveBestCash(amount) {
+        try {
+          localStorage.setItem('mini_gta_best_cash', String(amount));
+        } catch (err) {
+          // Ignore storage errors in restricted environments
+        }
+      }
+
+      // --- 3. CITY MAP DATA ---
+      const WORLD_W = 1800;
+      const WORLD_H = 1400;
+
+      const buildings = [
+        { x: 140, y: 140, w: 320, h: 240, color: '#334155', roof: '#475569', label: 'BANK' },
+        { x: 600, y: 140, w: 340, h: 240, color: '#3f3f46', roof: '#52525b', label: 'MOTEL' },
+        { x: 1080, y: 140, w: 560, h: 240, color: '#1e3a5f', roof: '#2c5282', label: 'MALL' },
+        { x: 140, y: 520, w: 320, h: 300, color: '#4c1d95', roof: '#5b21b6', label: 'ARCADE' },
+        { x: 600, y: 520, w: 340, h: 300, color: '#14532d', roof: '#166534', label: 'PARK' },
+        { x: 1080, y: 520, w: 560, h: 300, color: '#7c2d12', roof: '#9a3412', label: 'DINER' },
+        { x: 140, y: 960, w: 320, h: 280, color: '#374151', roof: '#4b5563', label: 'GARAGE' },
+        { x: 600, y: 960, w: 340, h: 280, color: '#701a75', roof: '#86198f', label: 'CLUB' },
+        { x: 1080, y: 960, w: 560, h: 280, color: '#1e293b', roof: '#334155', label: 'TOWER' }
+      ];
+
+      const payNSpray = { x: 155, y: 895, w: 92, h: 46 };
+      const paintPalette = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#06b6d4', '#a855f7', '#ec4899'];
+
+      const missionSpots = [
+        { name: 'BANK', x: 300, y: 420 },
+        { name: 'GARAGE', x: 340, y: 920 },
+        { name: 'DINER', x: 1360, y: 480 },
+        { name: 'CLUB', x: 770, y: 920 },
+        { name: 'MALL', x: 1360, y: 420 },
+        { name: 'ARCADE', x: 500, y: 670 }
+      ];
+
+      function createRoadblocks() {
+        return [
+          { x: 500, y: 660, w: 60, h: 16, intact: true },
+          { x: 980, y: 430, w: 60, h: 16, intact: true }
+        ];
+      }
+
+      function createInitialCars() {
+        return [
+          {
+            id: 'player-car',
+            x: 530, y: 360, spawnX: 530, spawnY: 360, w: 44, h: 24, angle: 0, speed: 0, hp: 100,
+            maxSpeed: 8.5, accel: 0.25, friction: 0.96, turnSpeed: 0.055,
+            color: '#ef4444', isTraffic: false, isSupercar: false, aiCruise: 0, respawnTimer: 0
+          },
+          {
+            id: 'supercar',
+            x: 1360, y: 405, spawnX: 1360, spawnY: 405, w: 46, h: 23, angle: 0, speed: 0, hp: 100,
+            maxSpeed: 10.8, accel: 0.35, friction: 0.965, turnSpeed: 0.068,
+            color: '#f8fafc', isTraffic: false, isSupercar: true, aiCruise: 0, respawnTimer: 0
+          },
+          {
+            id: 'taxi-1',
+            x: 240, y: 450, spawnX: 240, spawnY: 450, w: 42, h: 22, angle: 0, speed: 2.6, hp: 100,
+            maxSpeed: 7.5, accel: 0.22, friction: 0.96, turnSpeed: 0.055,
+            color: '#facc15', isTraffic: true, isSupercar: false, aiCruise: 2.6, respawnTimer: 0
+          },
+          {
+            id: 'sedan-1',
+            x: 1010, y: 260, spawnX: 1010, spawnY: 260, w: 42, h: 22, angle: Math.PI / 2, speed: 2.8, hp: 100,
+            maxSpeed: 7.8, accel: 0.23, friction: 0.96, turnSpeed: 0.055,
+            color: '#3b82f6', isTraffic: true, isSupercar: false, aiCruise: 2.8, respawnTimer: 0
+          },
+          {
+            id: 'van-1',
+            x: 1350, y: 890, spawnX: 1350, spawnY: 890, w: 46, h: 24, angle: Math.PI, speed: 2.3, hp: 100,
+            maxSpeed: 6.8, accel: 0.2, friction: 0.96, turnSpeed: 0.05,
+            color: '#10b981', isTraffic: true, isSupercar: false, aiCruise: 2.3, respawnTimer: 0
+          },
+          {
+            id: 'coupe-1',
+            x: 530, y: 1120, spawnX: 530, spawnY: 1120, w: 42, h: 22, angle: -Math.PI / 2, speed: 3.1, hp: 100,
+            maxSpeed: 8.8, accel: 0.27, friction: 0.96, turnSpeed: 0.06,
+            color: '#ec4899', isTraffic: true, isSupercar: false, aiCruise: 3.1, respawnTimer: 0
+          }
+        ];
+      }
+
+      function createPedestrians() {
+        const colors = ['#f472b6', '#a78bfa', '#34d399', '#fb923c', '#e2e8f0'];
+        const spots = [
+          { x: 475, y: 250 }, { x: 475, y: 650 }, { x: 585, y: 310 },
+          { x: 955, y: 680 }, { x: 1065, y: 280 }, { x: 1065, y: 1060 },
+          { x: 740, y: 670 }, { x: 820, y: 710 }, { x: 300, y: 945 },
+          { x: 1280, y: 395 }
+        ];
+        return spots.map((s, idx) => ({
+          x: s.x,
+          y: s.y,
+          angle: (idx * 1.1) % (Math.PI * 2),
+          speed: 0.9,
+          panicTimer: 0,
+          hitCooldown: 0,
+          color: colors[idx % colors.length]
+        }));
+      }
+
+      function createRepairPickups() {
+        return [
+          { x: 770, y: 450, active: true, cooldown: 0 },
+          { x: 1010, y: 890, active: true, cooldown: 0 },
+          { x: 530, y: 890, active: true, cooldown: 0 }
+        ];
+      }
+
+      // --- 4. GAME STATE ---
+      const keys = {};
+      let animationFrameId = null;
+
+      const state = {
+        player: { x: 530, y: 450, radius: 12, speed: 3.3, angle: 0 },
+        cars: createInitialCars(),
+        activeCar: null,
+        pedestrians: createPedestrians(),
+        repairs: createRepairPickups(),
+        roadblocks: createRoadblocks(),
+        explosions: [],
+        skidMarks: [],
+        police: [],
+        wantedLevel: 0,
+        wantedCooldown: 0,
+        bustProgress: 0,
+        busted: false,
+        shopOpen: false,
+        nightMode: false,
+        radioIdx: 1,
+        radioStep: 0,
+        upgrades: { turbo: false, armor: false, bigNitro: false },
+        cash: 0,
+        bestCash: loadBestCash(),
+        nitro: 100,
+        nitroActive: false,
+        sprayCooldown: 0,
+        missionIdx: 0,
+        missionBonusTimer: 20 * 60,
+        pulseTick: 0,
+        sirenTick: 0,
+        camera: { x: 0, y: 0 },
+        message: 'Find the white Supercar parked at the MALL for top speed!',
+        messageTimer: 260
+      };
+
+      function resetGame() {
+        state.player = { x: 530, y: 450, radius: 12, speed: 3.3, angle: 0 };
+        state.cars = createInitialCars();
+        state.activeCar = null;
+        state.pedestrians = createPedestrians();
+        state.repairs = createRepairPickups();
+        state.roadblocks = createRoadblocks();
+        state.explosions = [];
+        state.skidMarks = [];
+        state.police = [];
+        state.wantedLevel = 0;
+        state.wantedCooldown = 0;
+        state.bustProgress = 0;
+        state.busted = false;
+        state.shopOpen = false;
+        state.upgrades = { turbo: false, armor: false, bigNitro: false };
+        state.cash = 0;
+        state.nitro = 100;
+        state.nitroActive = false;
+        state.sprayCooldown = 0;
+        state.missionIdx = 0;
+        state.missionBonusTimer = 20 * 60;
+        bustedOverlay.classList.remove('visible');
+        shopOverlay.classList.remove('visible');
+        state.message = 'Find the white Supercar parked at the MALL for top speed!';
+        state.messageTimer = 260;
+        updateHud();
+        renderShopButtons();
+      }
+
+      // --- 5. INPUT HANDLING ---
+      function setKey(code, isDown) {
+        keys[code] = isDown;
+      }
+
+      function cycleRadio() {
+        state.radioIdx = (state.radioIdx + 1) % radioStations.length;
+        state.radioStep = 0;
+        const station = radioStations[state.radioIdx];
+        btnRadio.classList.toggle('btn-radio', state.radioIdx > 0);
+        showToast(`Radio: ${station.name}`);
+        updateHud();
+      }
+
+      window.addEventListener('keydown', (e) => {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+          e.preventDefault();
+        }
+        if (state.busted || state.shopOpen) return;
+        ensureAudio();
+        if (!keys[e.code]) {
+          if (e.code === 'KeyE') toggleCar();
+          if (e.code === 'KeyR') cycleRadio();
+          if (e.code === 'Space' && state.activeCar) {
+            playHonk();
+            scareNearbyPedestrians(state.activeCar.x, state.activeCar.y, 170);
+          }
+        }
+        setKey(e.code, true);
+      });
+
+      window.addEventListener('keyup', (e) => {
+        setKey(e.code, false);
+      });
+
+      document.querySelectorAll('.dpad-btn').forEach((btn) => {
+        const keyCode = btn.getAttribute('data-key');
+        const press = (e) => {
+          e.preventDefault();
+          if (state.busted || state.shopOpen) return;
+          ensureAudio();
+          setKey(keyCode, true);
+          btn.classList.add('active');
+        };
+        const release = (e) => {
+          e.preventDefault();
+          setKey(keyCode, false);
+          btn.classList.remove('active');
+        };
+        btn.addEventListener('pointerdown', press);
+        btn.addEventListener('pointerup', release);
+        btn.addEventListener('pointerleave', release);
+        btn.addEventListener('pointercancel', release);
+      });
+
+      btnCar.addEventListener('click', () => {
+        if (state.busted || state.shopOpen) return;
+        ensureAudio();
+        toggleCar();
+      });
+
+      btnRadio.addEventListener('click', () => {
+        if (state.busted || state.shopOpen) return;
+        ensureAudio();
+        cycleRadio();
+      });
+
+      const startNitro = (e) => {
+        e.preventDefault();
+        if (state.busted || state.shopOpen) return;
+        ensureAudio();
+        setKey('ShiftLeft', true);
+      };
+      const stopNitro = (e) => {
+        e.preventDefault();
+        setKey('ShiftLeft', false);
+      };
+      btnNitro.addEventListener('pointerdown', startNitro);
+      btnNitro.addEventListener('pointerup', stopNitro);
+      btnNitro.addEventListener('pointerleave', stopNitro);
+      btnNitro.addEventListener('pointercancel', stopNitro);
+
+      btnHonk.addEventListener('click', () => {
+        if (state.busted || state.shopOpen) return;
+        ensureAudio();
+        if (state.activeCar) {
+          playHonk();
+          scareNearbyPedestrians(state.activeCar.x, state.activeCar.y, 170);
+        } else {
+          showToast('Get inside a car first to honk!');
+        }
+      });
+
+      btnNight.addEventListener('click', () => {
+        state.nightMode = !state.nightMode;
+        btnNight.textContent = state.nightMode ? 'Night: ON' : 'Night: OFF';
+        btnNight.classList.toggle('btn-night', state.nightMode);
+      });
+
+      btnShop.addEventListener('click', () => {
+        if (state.busted) return;
+        state.shopOpen = true;
+        renderShopButtons();
+        shopOverlay.classList.add('visible');
+      });
+
+      btnCloseShop.addEventListener('click', () => {
+        state.shopOpen = false;
+        shopOverlay.classList.remove('visible');
+      });
+
+      function renderShopButtons() {
+        shopCashLabel.textContent = `Available Cash: $${state.cash}`;
+        buyTurbo.textContent = state.upgrades.turbo ? 'Owned' : '$300';
+        buyTurbo.disabled = state.upgrades.turbo || state.cash < 300;
+        buyArmor.textContent = state.upgrades.armor ? 'Owned' : '$300';
+        buyArmor.disabled = state.upgrades.armor || state.cash < 300;
+        buyNitro.textContent = state.upgrades.bigNitro ? 'Owned' : '$250';
+        buyNitro.disabled = state.upgrades.bigNitro || state.cash < 250;
+      }
+
+      function buyUpgrade(key, cost, label) {
+        if (state.upgrades[key] || state.cash < cost) return;
+        state.cash -= cost;
+        state.upgrades[key] = true;
+        playCashSound();
+        renderShopButtons();
+        updateHud();
+        showToast(`${label} installed!`);
+      }
+
+      buyTurbo.addEventListener('click', () => buyUpgrade('turbo', 300, 'Turbo Engine'));
+      buyArmor.addEventListener('click', () => buyUpgrade('armor', 300, 'Armor Plating'));
+      buyNitro.addEventListener('click', () => buyUpgrade('bigNitro', 250, 'Big Nitro Tank'));
+
+      btnMute.addEventListener('click', () => {
+        isMuted = !isMuted;
+        btnMute.textContent = isMuted ? 'Sound: OFF' : 'Sound: ON';
+        btnMute.classList.toggle('btn-accent', !isMuted);
+      });
+
+      btnReset.addEventListener('click', () => {
+        ensureAudio();
+        resetGame();
+      });
+
+      btnRespawn.addEventListener('click', () => {
+        ensureAudio();
+        resetGame();
+      });
+
+      function showToast(text) {
+        state.message = text;
+        state.messageTimer = 170;
+      }
+
+      function scareNearbyPedestrians(x, y, range) {
+        for (const ped of state.pedestrians) {
+          const dist = Math.hypot(ped.x - x, ped.y - y);
+          if (dist < range) {
+            ped.angle = Math.atan2(ped.y - y, ped.x - x);
+            ped.panicTimer = 90;
+          }
+        }
+      }
+
+      function damageCar(car, amount) {
+        if (car.hp <= 0) return;
+        const dmg = state.upgrades.armor ? Math.max(1, Math.round(amount * 0.5)) : amount;
+        car.hp = Math.max(0, car.hp - dmg);
+        if (car.hp === 0) {
+          car.speed = 0;
+          car.respawnTimer = 480; // ~8 seconds
+          state.explosions.push({ x: car.x, y: car.y, frame: 0, maxFrames: 26 });
+          playBoomSound();
+          if (car === state.activeCar) {
+            showToast('Car wrecked! Press E to bail out!');
+          }
+        }
+      }
+
+      function addWantedStar(reason) {
+        if (state.wantedLevel < 3) {
+          state.wantedLevel++;
+          if (state.wantedLevel === 3) {
+            state.roadblocks = createRoadblocks();
+            showToast('Wanted ★★★ — Police Roadblocks Deployed!');
+          } else {
+            showToast(reason + ' — Wanted ★' + state.wantedLevel);
+          }
+        }
+        state.wantedCooldown = 420;
+        syncPoliceCount();
+        updateHud();
+      }
+
+      function syncPoliceCount() {
+        while (state.police.length < state.wantedLevel) {
+          const corners = [
+            { x: 70, y: 70 },
+            { x: WORLD_W - 70, y: 70 },
+            { x: 70, y: WORLD_H - 70 },
+            { x: WORLD_W - 70, y: WORLD_H - 70 }
+          ];
+          const spawn = corners[state.police.length % corners.length];
+          state.police.push({
+            x: spawn.x,
+            y: spawn.y,
+            w: 44,
+            h: 24,
+            angle: 0,
+            speed: 4.3 + state.police.length * 0.35
+          });
+        }
+        if (state.wantedLevel === 0) {
+          state.police = [];
+        }
+      }
+
+      function toggleCar() {
+        if (state.activeCar) {
+          const car = state.activeCar;
+          state.activeCar = null;
+          state.nitroActive = false;
+          const exitAngle = car.angle - Math.PI / 2;
+          state.player.x = car.x + Math.cos(exitAngle) * 34;
+          state.player.y = car.y + Math.sin(exitAngle) * 34;
+          playDoorSound();
+          showToast('Exited vehicle');
+        } else {
+          let nearest = null;
+          let bestDist = 66;
+          for (const car of state.cars) {
+            if (car.hp <= 0) continue;
+            const dist = Math.hypot(state.player.x - car.x, state.player.y - car.y);
+            if (dist < bestDist) {
+              bestDist = dist;
+              nearest = car;
+            }
+          }
+          if (nearest) {
+            state.activeCar = nearest;
+            playDoorSound();
+            if (nearest.isTraffic) {
+              nearest.isTraffic = false;
+              addWantedStar('Carjacked!');
+            } else if (nearest.isSupercar) {
+              showToast('Driving the Supercar! Hold Shift for Nitro!');
+            } else {
+              showToast('Driving! Press R for Radio, Shift for Nitro');
+            }
+          } else {
+            showToast('Move closer to a working car to enter!');
+          }
+        }
+        updateHud();
+      }
+
+      // --- 6. COLLISION HELPERS ---
+      function rectCircleCollide(cx, cy, r, rect) {
+        const closestX = Math.max(rect.x, Math.min(cx, rect.x + rect.w));
+        const closestY = Math.max(rect.y, Math.min(cy, rect.y + rect.h));
+        const dx = cx - closestX;
+        const dy = cy - closestY;
+        return dx * dx + dy * dy < r * r;
+      }
+
+      function collidesWithBuildings(x, y, radius) {
+        if (x < radius || y < radius || x > WORLD_W - radius || y > WORLD_H - radius) {
+          return true;
+        }
+        for (const b of buildings) {
+          if (b.label === 'PARK') continue;
+          if (rectCircleCollide(x, y, radius, b)) return true;
+        }
+        return false;
+      }
+
+      // --- 7. UPDATE LOOP ---
+      function update() {
+        if (state.busted || state.shopOpen) return;
+        state.pulseTick++;
+        if (state.sprayCooldown > 0) state.sprayCooldown--;
+        if (state.missionBonusTimer > 0) state.missionBonusTimer--;
+
+        // Car Radio beat sequencer
+        if (state.activeCar && state.radioIdx > 0 && state.pulseTick % 16 === 0) {
+          const station = radioStations[state.radioIdx];
+          const note = station.notes[state.radioStep % station.notes.length];
+          if (note > 0) playTone(note, 0.14, station.type, 0.025);
+          state.radioStep++;
+        }
+
+        const up = keys['KeyW'] || keys['ArrowUp'];
+        const down = keys['KeyS'] || keys['ArrowDown'];
+        const left = keys['KeyA'] || keys['ArrowLeft'];
+        const right = keys['KeyD'] || keys['ArrowRight'];
+        const nitroHeld = keys['ShiftLeft'] || keys['ShiftRight'];
+
+        // 1. Player or Active Car
+        if (!state.activeCar) {
+          state.nitroActive = false;
+          state.nitro = Math.min(100, state.nitro + 0.35);
+
+          let vx = 0;
+          let vy = 0;
+          if (up) vy -= 1;
+          if (down) vy += 1;
+          if (left) vx -= 1;
+          if (right) vx += 1;
+
+          if (vx !== 0 || vy !== 0) {
+            const len = Math.hypot(vx, vy);
+            vx = (vx / len) * state.player.speed;
+            vy = (vy / len) * state.player.speed;
+            state.player.angle = Math.atan2(vy, vx);
+
+            if (!collidesWithBuildings(state.player.x + vx, state.player.y, state.player.radius)) {
+              state.player.x += vx;
+            }
+            if (!collidesWithBuildings(state.player.x, state.player.y + vy, state.player.radius)) {
+              state.player.y += vy;
+            }
+          }
+        } else {
+          const car = state.activeCar;
+          if (car.hp > 0) {
+            const usingNitro = nitroHeld && state.nitro > 1 && up;
+            state.nitroActive = usingNitro;
+            const drainRate = state.upgrades.bigNitro ? 0.72 : 1.15;
+            if (usingNitro) {
+              state.nitro = Math.max(0, state.nitro - drainRate);
+            } else {
+              state.nitro = Math.min(100, state.nitro + 0.25);
+            }
+
+            const turboMult = state.upgrades.turbo ? 1.2 : 1.0;
+            const topSpeed = (usingNitro ? car.maxSpeed * 1.48 : car.maxSpeed) * turboMult;
+            const accelBoost = (usingNitro ? car.accel * 1.8 : car.accel) * turboMult;
+
+            if (up) car.speed += accelBoost;
+            if (down) car.speed -= car.accel * 0.7;
+
+            car.speed = Math.max(-car.maxSpeed * 0.45, Math.min(topSpeed, car.speed));
+            if (!up && !down) car.speed *= car.friction;
+
+            if (Math.abs(car.speed) > 0.2) {
+              const dir = car.speed > 0 ? 1 : -1;
+              if (left) car.angle -= car.turnSpeed * dir;
+              if (right) car.angle += car.turnSpeed * dir;
+
+              if ((left || right) && Math.abs(car.speed) > 4.8) {
+                state.skidMarks.push({ x: car.x, y: car.y, angle: car.angle, life: 180 });
+                if (state.skidMarks.length > 140) state.skidMarks.shift();
+              }
+            }
+          } else {
+            state.nitroActive = false;
+            car.speed *= 0.9;
+          }
+
+          const nx = car.x + Math.cos(car.angle) * car.speed;
+          const ny = car.y + Math.sin(car.angle) * car.speed;
+
+          if (!collidesWithBuildings(nx, car.y, 18)) {
+            car.x = nx;
+          } else {
+            if (Math.abs(car.speed) > 3.5) {
+              damageCar(car, Math.round(Math.abs(car.speed) * 2.2));
+              playCrashSound();
+            }
+            car.speed *= -0.35;
+          }
+
+          if (!collidesWithBuildings(car.x, ny, 18)) {
+            car.y = ny;
+          } else {
+            if (Math.abs(car.speed) > 3.5) {
+              damageCar(car, Math.round(Math.abs(car.speed) * 2.2));
+              playCrashSound();
+            }
+            car.speed *= -0.35;
+          }
+
+          if (state.wantedLevel >= 3) {
+            for (const rb of state.roadblocks) {
+              if (!rb.intact) continue;
+              if (rectCircleCollide(car.x, car.y, 20, rb)) {
+                rb.intact = false;
+                damageCar(car, 20);
+                car.speed *= 0.45;
+                playCrashSound();
+                showToast('Smashed through a police roadblock!');
+              }
+            }
+          }
+
+          state.player.x = car.x;
+          state.player.y = car.y;
+
+          // Pay-n-Spray check
+          if (
+            state.sprayCooldown === 0 &&
+            car.x > payNSpray.x &&
+            car.x < payNSpray.x + payNSpray.w &&
+            car.y > payNSpray.y &&
+            car.y < payNSpray.y + payNSpray.h
+          ) {
+            const nextColors = paintPalette.filter((c) => c !== car.color);
+            car.color = nextColors[Math.floor(Math.random() * nextColors.length)];
+            car.hp = 100;
+            state.wantedLevel = 0;
+            state.bustProgress = 0;
+            syncPoliceCount();
+            state.sprayCooldown = 180;
+            playSpraySound();
+            showToast('Resprayed & Repaired! Wanted stars cleared!');
+          }
+
+          // Repair pickups
+          for (const rep of state.repairs) {
+            if (!rep.active) {
+              rep.cooldown--;
+              if (rep.cooldown <= 0) rep.active = true;
+              continue;
+            }
+            if (car.hp < 100 && Math.hypot(car.x - rep.x, car.y - rep.y) < 32) {
+              car.hp = 100;
+              rep.active = false;
+              rep.cooldown = 600;
+              playRepairSound();
+              showToast('Car repaired to 100%!');
+            }
+          }
+        }
+
+        // Age skid marks & explosions
+        for (let i = state.skidMarks.length - 1; i >= 0; i--) {
+          state.skidMarks[i].life--;
+          if (state.skidMarks[i].life <= 0) state.skidMarks.splice(i, 1);
+        }
+        for (let i = state.explosions.length - 1; i >= 0; i--) {
+          state.explosions[i].frame++;
+          if (state.explosions[i].frame >= state.explosions[i].maxFrames) {
+            state.explosions.splice(i, 1);
+          }
+        }
+
+        // 2. Traffic, Parked Cars & Wreck Respawn
+        for (const car of state.cars) {
+          if (car.hp <= 0 && car !== state.activeCar) {
+            car.respawnTimer--;
+            if (car.respawnTimer <= 0) {
+              car.x = car.spawnX;
+              car.y = car.spawnY;
+              car.hp = 100;
+              car.speed = car.isTraffic ? car.aiCruise : 0;
+            }
+            continue;
+          }
+          if (car === state.activeCar) continue;
+          if (car.isTraffic && car.hp > 0) {
+            const nx = car.x + Math.cos(car.angle) * car.aiCruise;
+            const ny = car.y + Math.sin(car.angle) * car.aiCruise;
+            if (!collidesWithBuildings(nx, ny, 22)) {
+              car.x = nx;
+              car.y = ny;
+            } else {
+              car.angle += Math.PI / 2;
+            }
+
+            if (state.activeCar) {
+              const dist = Math.hypot(car.x - state.activeCar.x, car.y - state.activeCar.y);
+              if (dist < 36 && Math.abs(state.activeCar.speed) > 2.2) {
+                damageCar(state.activeCar, 15);
+                state.activeCar.speed *= -0.4;
+                playCrashSound();
+                addWantedStar('Hit & Run!');
+              }
+            }
+          } else {
+            car.speed *= 0.94;
+            if (Math.abs(car.speed) < 0.05) car.speed = 0;
+          }
+        }
+
+        // 3. Pedestrians
+        for (const ped of state.pedestrians) {
+          if (ped.hitCooldown > 0) ped.hitCooldown--;
+          const moveSpeed = ped.panicTimer > 0 ? 2.4 : ped.speed;
+          if (ped.panicTimer > 0) ped.panicTimer--;
+
+          const nx = ped.x + Math.cos(ped.angle) * moveSpeed;
+          const ny = ped.y + Math.sin(ped.angle) * moveSpeed;
+          if (!collidesWithBuildings(nx, ny, 10)) {
+            ped.x = nx;
+            ped.y = ny;
+          } else {
+            ped.angle += Math.PI * 0.75;
+          }
+
+          if (state.activeCar && Math.abs(state.activeCar.speed) > 2.0 && ped.hitCooldown === 0) {
+            const dist = Math.hypot(ped.x - state.activeCar.x, ped.y - state.activeCar.y);
+            if (dist < 26) {
+              ped.hitCooldown = 90;
+              ped.panicTimer = 120;
+              ped.angle = state.activeCar.angle + Math.PI / 2;
+              playCrashSound();
+              addWantedStar('Reckless Driving!');
+            }
+          }
+        }
+
+        // 4. Mission Checkpoint Check
+        const px = state.activeCar ? state.activeCar.x : state.player.x;
+        const py = state.activeCar ? state.activeCar.y : state.player.y;
+        const target = missionSpots[state.missionIdx];
+        if (Math.hypot(px - target.x, py - target.y) < 42) {
+          const gotBonus = state.missionBonusTimer > 0;
+          const reward = gotBonus ? 400 : 250;
+          state.cash += reward;
+          if (state.cash > state.bestCash) {
+            state.bestCash = state.cash;
+            saveBestCash(state.bestCash);
+          }
+          state.missionIdx = (state.missionIdx + 1) % missionSpots.length;
+          state.missionBonusTimer = 20 * 60;
+          playCashSound();
+          showToast(
+            gotBonus
+              ? `Speed Bonus! +$${reward} • Next: ${missionSpots[state.missionIdx].name}`
+              : `Delivery complete! +$${reward} • Next: ${missionSpots[state.missionIdx].name}`
+          );
+        }
+
+        // 5. Police Pursuit & Wanted Cooldown
+        let policeClose = false;
+        if (state.wantedLevel > 0) {
+          state.sirenTick++;
+          if (state.sirenTick % 26 === 0) {
+            playSirenBlip((state.sirenTick / 26) % 2 === 0);
+          }
+
+          for (const cop of state.police) {
+            const dx = px - cop.x;
+            const dy = py - cop.y;
+            const dist = Math.hypot(dx, dy);
+            cop.angle = Math.atan2(dy, dx);
+
+            const stepX = Math.cos(cop.angle) * cop.speed;
+            const stepY = Math.sin(cop.angle) * cop.speed;
+            if (!collidesWithBuildings(cop.x + stepX, cop.y, 18)) cop.x += stepX;
+            if (!collidesWithBuildings(cop.x, cop.y + stepY, 18)) cop.y += stepY;
+
+            if (dist < 260) policeClose = true;
+            if (dist < 38) {
+              const playerSpeed = state.activeCar ? Math.abs(state.activeCar.speed) : 0;
+              state.bustProgress += !state.activeCar || playerSpeed < 2.0 ? 2 : 0.5;
+            }
+          }
+
+          if (state.bustProgress >= 50) {
+            state.busted = true;
+            bustedSummary.textContent = `The police caught you with $${state.cash} earned (Best: $${state.bestCash}). Ready to try again?`;
+            bustedOverlay.classList.add('visible');
+            return;
+          }
+
+          if (!policeClose) {
+            state.wantedCooldown--;
+            if (state.wantedCooldown <= 0) {
+              state.wantedLevel = Math.max(0, state.wantedLevel - 1);
+              state.wantedCooldown = 360;
+              state.bustProgress = 0;
+              syncPoliceCount();
+              showToast(state.wantedLevel === 0 ? 'Escaped the cops!' : 'Cops losing your trail...');
+            }
+          } else {
+            state.wantedCooldown = 420;
+          }
+        }
+
+        // 6. Camera follows target
+        state.camera.x = Math.max(0, Math.min(WORLD_W - canvas.width, px - canvas.width / 2));
+        state.camera.y = Math.max(0, Math.min(WORLD_H - canvas.height, py - canvas.height / 2));
+
+        if (state.messageTimer > 0) state.messageTimer--;
+        updateHud();
+      }
+
+      function updateHud() {
+        const mph = state.activeCar
+          ? Math.round(Math.abs(state.activeCar.speed) * 11)
+          : (keys['KeyW'] || keys['KeyA'] || keys['KeyS'] || keys['KeyD'] ||
+             keys['ArrowUp'] || keys['ArrowDown'] || keys['ArrowLeft'] || keys['ArrowRight'])
+            ? 4
+            : 0;
+        hudStatus.textContent = `${state.activeCar ? 'IN CAR' : 'ON FOOT'} • ${mph} MPH`;
+        hudCash.textContent = `$${state.cash}`;
+        hudBest.textContent = `Best: $${state.bestCash}`;
+        nitroFill.style.width = `${Math.round(state.nitro)}%`;
+
+        if (state.activeCar) {
+          carHpWrap.style.display = 'flex';
+          carHpFill.style.width = `${Math.round(state.activeCar.hp)}%`;
+          carHpFill.style.background =
+            state.activeCar.hp > 50 ? '#4ade80' : state.activeCar.hp > 25 ? '#facc15' : '#ef4444';
+        } else {
+          carHpWrap.style.display = 'none';
+        }
+
+        const secsLeft = Math.ceil(state.missionBonusTimer / 60);
+        const bonusText = secsLeft > 0 ? `Bonus: ${secsLeft}s` : 'Standard Pay';
+        hudMission.textContent = `Mission: ${missionSpots[state.missionIdx].name} (${bonusText})`;
+        hudRadio.textContent = `Radio: ${radioStations[state.radioIdx].name}`;
+        btnCar.textContent = state.activeCar ? 'Exit Car (E)' : 'Enter Car (E)';
+        btnRadio.classList.toggle('btn-radio', state.radioIdx > 0);
+
+        let starsHtml = '';
+        for (let i = 1; i <= 3; i++) {
+          starsHtml += i <= state.wantedLevel ? '<span class="lit">★</span> ' : '★ ';
+        }
+        hudStars.innerHTML = starsHtml.trim();
+      }
+
+      // --- 8. RENDERING ---
+      function drawCarShape(car, isCop, showNitro) {
+        ctx.save();
+        ctx.translate(car.x, car.y);
+        ctx.rotate(car.angle);
+
+        if (state.nightMode && (car.hp > 0 || isCop)) {
+          const grad = ctx.createLinearGradient(car.w / 2, 0, car.w / 2 + 150, 0);
+          grad.addColorStop(0, 'rgba(254, 240, 138, 0.35)');
+          grad.addColorStop(1, 'rgba(254, 240, 138, 0)');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.moveTo(car.w / 2, -8);
+          ctx.lineTo(car.w / 2 + 150, -48);
+          ctx.lineTo(car.w / 2 + 150, 48);
+          ctx.lineTo(car.w / 2, 8);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        if (showNitro && car.hp > 0) {
+          ctx.fillStyle = state.pulseTick % 4 < 2 ? '#f97316' : '#facc15';
+          ctx.beginPath();
+          ctx.moveTo(-car.w / 2, -6);
+          ctx.lineTo(-car.w / 2 - 18 - Math.random() * 8, 0);
+          ctx.lineTo(-car.w / 2, 6);
+          ctx.closePath();
+          ctx.fill();
+        }
+
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
+        ctx.fillRect(-car.w / 2 + 3, -car.h / 2 + 4, car.w, car.h);
+
+        ctx.fillStyle = car.hp <= 0 ? '#374151' : isCop ? '#1e293b' : car.color;
+        ctx.fillRect(-car.w / 2, -car.h / 2, car.w, car.h);
+
+        // Racing stripes on Supercar
+        if (car.isSupercar && car.hp > 0) {
+          ctx.fillStyle = '#f59e0b';
+          ctx.fillRect(-car.w / 2 + 2, -4, car.w - 6, 3);
+          ctx.fillRect(-car.w / 2 + 2, 1, car.w - 6, 3);
+        }
+
+        if (isCop) {
+          ctx.fillStyle = '#f8fafc';
+          ctx.fillRect(-8, -car.h / 2 + 2, 16, car.h - 4);
+          const flash = Math.floor(state.sirenTick / 8) % 2 === 0;
+          ctx.fillStyle = flash ? '#ef4444' : '#3b82f6';
+          ctx.fillRect(-4, -car.h / 2 + 3, 6, 8);
+          ctx.fillStyle = flash ? '#3b82f6' : '#ef4444';
+          ctx.fillRect(-4, car.h / 2 - 11, 6, 8);
+        }
+
+        ctx.fillStyle = '#93c5fd';
+        ctx.fillRect(2, -car.h / 2 + 3, 10, car.h - 6);
+
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(car.w / 2 - 3, -car.h / 2 + 3, 3, 5);
+        ctx.fillRect(car.w / 2 - 3, car.h / 2 - 8, 3, 5);
+
+        if (!isCop && car.hp < 40) {
+          const puffOffset = (state.pulseTick % 20) * 0.6;
+          ctx.fillStyle = car.hp === 0 ? 'rgba(239, 68, 68, 0.55)' : 'rgba(156, 163, 175, 0.5)';
+          ctx.beginPath();
+          ctx.arc(10 - puffOffset, -3, 7, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      function drawMinimap() {
+        const mw = minimap.width;
+        const mh = minimap.height;
+        const sx = mw / WORLD_W;
+        const sy = mh / WORLD_H;
+
+        mctx.clearRect(0, 0, mw, mh);
+        mctx.fillStyle = '#1f2937';
+        mctx.fillRect(0, 0, mw, mh);
+
+        buildings.forEach((b) => {
+          mctx.fillStyle = b.label === 'PARK' ? '#15803d' : '#475569';
+          mctx.fillRect(b.x * sx, b.y * sy, b.w * sx, b.h * sy);
+        });
+
+        mctx.fillStyle = '#38bdf8';
+        mctx.fillRect(payNSpray.x * sx, payNSpray.y * sy, 6, 4);
+
+        const target = missionSpots[state.missionIdx];
+        mctx.fillStyle = '#4ade80';
+        mctx.beginPath();
+        mctx.arc(target.x * sx, target.y * sy, 4, 0, Math.PI * 2);
+        mctx.fill();
+
+        state.police.forEach((cop) => {
+          mctx.fillStyle = Math.floor(state.sirenTick / 8) % 2 === 0 ? '#ef4444' : '#3b82f6';
+          mctx.beginPath();
+          mctx.arc(cop.x * sx, cop.y * sy, 3.2, 0, Math.PI * 2);
+          mctx.fill();
+        });
+
+        const px = state.activeCar ? state.activeCar.x : state.player.x;
+        const py = state.activeCar ? state.activeCar.y : state.player.y;
+        mctx.fillStyle = '#fbbf24';
+        mctx.beginPath();
+        mctx.arc(px * sx, py * sy, 3.8, 0, Math.PI * 2);
+        mctx.fill();
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.translate(-state.camera.x, -state.camera.y);
+
+        // Asphalt
+        ctx.fillStyle = '#1f2937';
+        ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+
+        // Skid marks
+        state.skidMarks.forEach((s) => {
+          ctx.save();
+          ctx.translate(s.x, s.y);
+          ctx.rotate(s.angle);
+          ctx.fillStyle = `rgba(10, 10, 12, ${Math.min(0.45, s.life / 240)})`;
+          ctx.fillRect(-10, -8, 10, 3);
+          ctx.fillRect(-10, 5, 10, 3);
+          ctx.restore();
+        });
+
+        // Road lines
+        ctx.strokeStyle = '#fbbf24';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([24, 24]);
+
+        [70, 530, 1010, 1730].forEach((rx) => {
+          ctx.beginPath();
+          ctx.moveTo(rx, 0);
+          ctx.lineTo(rx, WORLD_H);
+          ctx.stroke();
+        });
+
+        [70, 450, 890, 1330].forEach((ry) => {
+          ctx.beginPath();
+          ctx.moveTo(0, ry);
+          ctx.lineTo(WORLD_W, ry);
+          ctx.stroke();
+        });
+        ctx.setLineDash([]);
+
+        // Buildings & Sidewalks
+        buildings.forEach((b) => {
+          ctx.fillStyle = '#6b7280';
+          ctx.fillRect(b.x - 16, b.y - 16, b.w + 32, b.h + 32);
+
+          if (b.label === 'PARK') {
+            ctx.fillStyle = '#15803d';
+            ctx.fillRect(b.x, b.y, b.w, b.h);
+            ctx.fillStyle = '#166534';
+            ctx.beginPath();
+            ctx.arc(b.x + 80, b.y + 80, 32, 0, Math.PI * 2);
+            ctx.arc(b.x + b.w - 80, b.y + b.h - 80, 38, 0, Math.PI * 2);
+            ctx.fill();
+          } else {
+            ctx.fillStyle = b.color;
+            ctx.fillRect(b.x, b.y, b.w, b.h);
+            ctx.fillStyle = b.roof;
+            ctx.fillRect(b.x + 12, b.y + 12, b.w - 24, b.h - 24);
+          }
+
+          ctx.fillStyle = 'rgba(255,255,255,0.65)';
+          ctx.font = 'bold 18px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(b.label, b.x + b.w / 2, b.y + b.h / 2);
+        });
+
+        // Pay-n-Spray Bay
+        ctx.fillStyle = 'rgba(56, 189, 248, 0.2)';
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3;
+        ctx.fillRect(payNSpray.x, payNSpray.y, payNSpray.w, payNSpray.h);
+        ctx.strokeRect(payNSpray.x, payNSpray.y, payNSpray.w, payNSpray.h);
+        ctx.fillStyle = '#e0f2fe';
+        ctx.font = 'bold 12px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('SPRAY', payNSpray.x + payNSpray.w / 2, payNSpray.y + payNSpray.h / 2);
+
+        // 3-Star Roadblocks
+        if (state.wantedLevel >= 3) {
+          state.roadblocks.forEach((rb) => {
+            if (!rb.intact) return;
+            ctx.fillStyle = '#f97316';
+            ctx.fillRect(rb.x, rb.y, rb.w, rb.h);
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(rb.x + 8, rb.y + 3, 12, rb.h - 6);
+            ctx.fillRect(rb.x + 36, rb.y + 3, 12, rb.h - 6);
+          });
+        }
+
+        // Repair Pickups
+        state.repairs.forEach((rep) => {
+          if (!rep.active) return;
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(rep.x, rep.y, 13, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#111827';
+          ctx.font = 'bold 14px Inter, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText('+', rep.x, rep.y + 1);
+        });
+
+        // Mission Checkpoint Circle
+        const target = missionSpots[state.missionIdx];
+        const pulse = 28 + Math.sin(state.pulseTick * 0.1) * 5;
+        ctx.strokeStyle = '#4ade80';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.arc(target.x, target.y, pulse, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(74, 222, 128, 0.22)';
+        ctx.fill();
+
+        // Pedestrians
+        state.pedestrians.forEach((ped) => {
+          ctx.fillStyle = ped.color;
+          ctx.beginPath();
+          ctx.arc(ped.x, ped.y, 7, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Cars & Police
+        state.cars.forEach((car) => drawCarShape(car, false, car === state.activeCar && state.nitroActive));
+        state.police.forEach((cop) => drawCarShape(cop, true, false));
+
+        // Explosions
+        state.explosions.forEach((ex) => {
+          const progress = ex.frame / ex.maxFrames;
+          const radius = 14 + progress * 48;
+          ctx.fillStyle = `rgba(249, 115, 22, ${1 - progress})`;
+          ctx.beginPath();
+          ctx.arc(ex.x, ex.y, radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = `rgba(250, 204, 21, ${1 - progress})`;
+          ctx.beginPath();
+          ctx.arc(ex.x, ex.y, radius * 0.55, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        // Player (on foot)
+        if (!state.activeCar) {
+          const p = state.player;
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.angle);
+
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(0, 0, p.radius, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = '#fde047';
+          ctx.beginPath();
+          ctx.arc(6, 0, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+
+        ctx.restore();
+
+        // Night ambient darkness overlay
+        if (state.nightMode) {
+          ctx.fillStyle = 'rgba(2, 6, 23, 0.42)';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        // Toast prompt
+        if (state.messageTimer > 0) {
+          ctx.save();
+          ctx.font = '600 14px Inter, sans-serif';
+          const textWidth = ctx.measureText(state.message).width;
+          const boxW = textWidth + 28;
+          const boxX = (canvas.width - boxW) / 2;
+          const boxY = Math.max(156, canvas.height - 135);
+          ctx.fillStyle = 'rgba(17, 24, 39, 0.85)';
+          ctx.beginPath();
+          ctx.roundRect(boxX, boxY, boxW, 34, 8);
+          ctx.fill();
+          ctx.fillStyle = '#fef3c7';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(state.message, canvas.width / 2, boxY + 17);
+          ctx.restore();
+        }
+
+        drawMinimap();
+      }
+
+      function loop() {
+        update();
+        draw();
+        animationFrameId = requestAnimationFrame(loop);
+      }
+
+      function resizeCanvas() {
+        const container = document.getElementById('game-container');
+        canvas.width = container.clientWidth;
+        canvas.height = container.clientHeight;
+        draw();
+      }
+
+      window.addEventListener('resize', resizeCanvas);
+
+      window.onload = function () {
+        if (animationFrameId) cancelAnimationFrame(animationFrameId);
+        resizeCanvas();
+        updateHud();
+        loop();
+      };
+    })();
+  </script>
+</body>
+</html>
